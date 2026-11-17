@@ -89,6 +89,12 @@ input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appear
 .sheet h2{margin:0;font:500 26px var(--f-display)}
 .sheet textarea{width:100%;min-height:110px;border-radius:12px;border:1px solid var(--line);background:var(--surface);padding:10px;font:13px/1.4 ui-monospace,Menlo,monospace;resize:vertical}
 .row{display:flex;gap:10px;flex-wrap:wrap}
+.sd-list{display:grid;gap:8px}
+.sd-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:center;background:var(--surface);border-radius:12px;padding:10px 12px}
+.sd-row label{grid-column:1/-1;font-weight:600}
+.sd-row select{width:100%;min-width:0;min-height:46px;border-radius:10px;border:1px solid var(--line);background:var(--white);color:var(--fg);font:16px var(--f-ui);padding:0 10px}
+.sd-play{width:46px;height:46px;border-radius:50%;background:var(--orange);color:var(--black);display:grid;place-items:center}
+.sd-play svg{width:20px;height:20px;margin-left:2px}
 .msg{min-height:20px;color:var(--brown);font-size:14px;font-weight:600}
 
 /* ---------- Entrenamiento ---------- */
@@ -129,25 +135,25 @@ html[data-phase="done"]{--phase:var(--white);--on:var(--black);--hi:var(--orange
 .chip.armed{background:var(--on);color:var(--phase)}
 .note{font-size:13px;opacity:.8;text-align:center;min-height:1.2em;padding-top:4px}
 @media (max-height:640px){.cbtn{width:64px;height:64px}.cbtn.big{width:92px;height:92px}.counts{margin-top:6px}}
-/* Apaisado: número grande a la izquierda, controles en columna a la derecha */
+/* Apaisado: solo número y controles; el número ocupa todo el alto a la izquierda */
 @media (orientation:landscape) and (max-height:560px){
-  #run{display:grid;max-width:none;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto 1fr auto;grid-template-areas:"top ctl" "mid ctl" "mid bot";column-gap:20px;padding-block:6px 8px}
-  .run-top{grid-area:top}
-  .run-mid{grid-area:mid;gap:2px}
-  .exname{font-size:clamp(22px,6.5vh,32px)}
-  .timer{font-size:min(36vw,60vh);margin:2px 0 6px}
-  .timer.long{font-size:min(25vw,50vh)}
-  .counts{margin-top:6px}
-  .pill{font-size:17px;padding:6px 14px}
-  .controls{grid-area:ctl;align-self:center;grid-template-columns:auto auto;gap:12px 14px;padding:0}
+  #run{display:grid;max-width:none;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto 1fr;grid-template-areas:"mid top" "mid ctl";column-gap:18px;padding-block:6px}
+  .run-top{grid-area:top;justify-content:flex-end}
+  .run-name,.run-bottom{display:none}
+  .run-mid{grid-area:mid;gap:0}
+  .exname{font-size:clamp(18px,6vh,26px)}
+  .timer{font-size:min(56vw,84vh);line-height:.8;margin:0 0 6px}
+  .timer.long{font-size:min(33vw,70vh)}
+  .bar{height:6px}
+  .counts{margin-top:4px}
+  .pill{font-size:15px;padding:4px 12px}
+  .controls{grid-area:ctl;align-self:center;grid-template-columns:auto auto;gap:14px;padding:0}
   #r-toggle{grid-column:1/-1;grid-row:1}
   #r-restart{grid-column:1;grid-row:2}
   #r-skip{grid-column:2;grid-row:2}
   .cbtn{width:66px;height:66px}
-  .cbtn.big{width:100px;height:100px}
-  .cbtn.big svg{width:44px;height:44px}
-  .run-bottom{grid-area:bot;flex-direction:column;align-items:stretch;gap:8px;padding-top:8px}
-  .chip{min-height:40px;font-size:14px}
+  .cbtn.big{width:104px;height:104px}
+  .cbtn.big svg{width:46px;height:46px}
 }
 @media (prefers-reduced-motion:reduce){body{transition:none!important}}
 </style>
@@ -171,7 +177,7 @@ html[data-phase="done"]{--phase:var(--white);--on:var(--black);--hi:var(--orange
     <button class="btn primary" id="btn-new" type="button">+ Nuevo</button>
   </header>
   <section class="list" id="list" aria-label="Circuitos guardados"></section>
-  <div class="foot"><button class="linkbtn" id="btn-test" type="button">Probar sonido</button><button class="linkbtn" id="btn-backup" type="button">Copia de seguridad</button></div>
+  <div class="foot"><button class="linkbtn" id="btn-sounds" type="button">Sonidos</button><button class="linkbtn" id="btn-test" type="button">Probar sonido</button><button class="linkbtn" id="btn-backup" type="button">Copia de seguridad</button></div>
 </main>
 
 <main id="editor" class="wrap" hidden>
@@ -220,6 +226,15 @@ html[data-phase="done"]{--phase:var(--white);--on:var(--black);--hi:var(--orange
     <textarea id="bk-in" placeholder='[{"name":"40/25", ...}]'></textarea>
     <div class="row"><button class="btn" id="bk-import" type="button">Importar</button><button class="btn ghost" id="bk-close" type="button">Cerrar</button></div>
     <div class="msg" id="bk-msg" role="status"></div>
+  </div>
+</div>
+
+<div class="sheet" id="sounds" hidden>
+  <div class="sheet-in" role="dialog" aria-modal="true" aria-labelledby="sd-h">
+    <h2 id="sd-h">Sonidos</h2>
+    <p class="hint">Elige el sonido de cada aviso. Toca ▶ para escucharlo.</p>
+    <div class="sd-list" id="sd-list"></div>
+    <div class="row"><button class="btn primary" id="sd-close" type="button">Hecho</button></div>
   </div>
 </div>
 
@@ -302,6 +317,18 @@ $('#ed-save').onclick=()=>{draft.name=$('#ed-name').value.trim()||'Circuito sin 
 /* ---------- Copia de seguridad ---------- */
 $('#btn-backup').onclick=()=>{$('#bk-out').value=JSON.stringify(S.circuits.map(({id,...c})=>c),null,1);$('#bk-in').value='';$('#bk-msg').textContent='';$('#backup').hidden=false;};
 $('#bk-close').onclick=()=>{$('#backup').hidden=true;};
+
+/* ---------- Sonidos ---------- */
+function previewSound(ev){ensureAudio();if(!ctx)return;const t=ctx.currentTime+.05;
+  if(ev==='count'){[0,1,2].forEach(i=>SND.count(t+i*.7));}else SND[ev](t);}
+function renderSounds(){const box=$('#sd-list');box.innerHTML='';
+  EVENTS.forEach(([ev,label])=>{const r=document.createElement('div');r.className='sd-row';const lib=libFor(ev);
+    r.innerHTML=`<label for="sd-${ev}">${label}</label><select id="sd-${ev}">${Object.entries(lib).map(([id,o])=>`<option value="${id}">${o.n}</option>`).join('')}</select><button class="sd-play" type="button" aria-label="Escuchar"><svg><use href="#i-play"/></svg></button>`;
+    const sel=r.querySelector('select');sel.value=sndId(ev);
+    sel.onchange=()=>{S.settings.snd=Object.assign({},S.settings.snd,{[ev]:sel.value});save();previewSound(ev);};
+    r.querySelector('.sd-play').onclick=()=>previewSound(ev);box.appendChild(r);});}
+$('#btn-sounds').onclick=()=>{renderSounds();$('#sounds').hidden=false;};
+$('#sd-close').onclick=()=>{$('#sounds').hidden=true;};
 $('#bk-copy').onclick=()=>{const t=$('#bk-out');const ok=()=>{$('#bk-msg').textContent='Copiado.';};
   try{navigator.clipboard.writeText(t.value).then(ok,()=>{t.select();$('#bk-msg').textContent='Texto seleccionado: cópialo manualmente.';});}catch(e){t.select();}};
 $('#bk-import').onclick=()=>{try{let d=JSON.parse($('#bk-in').value);if(!Array.isArray(d))d=[d];const add=d.map(sanitize);if(!add.length)throw 0;
@@ -330,27 +357,54 @@ function bell(f,when,vol=.55,len=1.4){if(!ctx)return;const t=Math.max(ctx.curren
     o.connect(g);g.connect(master);o.start(t);o.stop(t+L+.05);
     if(track){scheduled.push(o);o.onended=()=>{const k=scheduled.indexOf(o);if(k>=0)scheduled.splice(k,1);};}});}
 function cancelSounds(){for(const o of scheduled){try{o.onended=null;o.stop();}catch(e){}}scheduled=[];}
-const SND={
-  count:t=>tone(1760,t,.14,'square',.5),
-  work:t=>{tone(1318,t,.16,'square',.55);tone(1976,t+.18,.55,'square',.55);},
-  rest:t=>{tone(1175,t,.22,'square',.5);tone(784,t+.25,.6,'square',.5);},
-  round:t=>{bell(1175,t);bell(1175,t+.4);bell(1175,t+.8);},
-  finish:t=>{[1046,1318,1568,2093].forEach((f,i)=>tone(f,t+i*.14,.2,'square',.5));[1568,2093].forEach(f=>tone(f,t+.62,1.1,'square',.4));},
+function whistle(when,len=.9){if(!ctx)return;const t=Math.max(ctx.currentTime,when);
+  const o=ctx.createOscillator(),l=ctx.createOscillator(),lg=ctx.createGain(),g=ctx.createGain();
+  o.type='triangle';o.frequency.value=2700;l.frequency.value=28;lg.gain.value=180;l.connect(lg);lg.connect(o.frequency);
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.8,t+.02);g.gain.setValueAtTime(.8,t+len-.06);g.gain.exponentialRampToValueAtTime(.0001,t+len);
+  o.connect(g);g.connect(master);o.start(t);l.start(t);o.stop(t+len+.05);l.stop(t+len+.05);}
+/* Catálogo de sonidos: cualquiera vale para cualquier aviso */
+const LIB={
+  pitido:{n:'Pitido doble',f:t=>{tone(1318,t,.16,'square',.55);tone(1976,t+.18,.55,'square',.55);}},
+  descenso:{n:'Dos tonos bajando',f:t=>{tone(1175,t,.22,'square',.5);tone(784,t+.25,.6,'square',.5);}},
+  triple:{n:'Tres pitidos rápidos',f:t=>{[0,.2,.4].forEach(d=>tone(1568,t+d,.13,'square',.55));}},
+  largo:{n:'Pitido largo',f:t=>tone(1568,t,1,'square',.5)},
+  arpegio:{n:'Arpegio subiendo',f:t=>{[1046,1318,1568,2093].forEach((f,i)=>tone(f,t+i*.12,.16,'square',.45));}},
+  campana:{n:'Campana de boxeo',f:t=>{bell(1175,t);bell(1175,t+.4);bell(1175,t+.8);}},
+  timbre:{n:'Timbre (din-don)',f:t=>{bell(1319,t,.6,1.2);bell(1047,t+.45,.6,1.6);}},
+  gong:{n:'Gong',f:t=>{bell(330,t,.8,3);bell(332,t,.4,3);}},
+  silbato:{n:'Silbato',f:t=>whistle(t,.9)},
+  bocina:{n:'Bocina',f:t=>{[440,554,659].forEach(f=>tone(f,t,.9,'sawtooth',.28));}},
+  fanfarria:{n:'Fanfarria',f:t=>{[1046,1318,1568,2093].forEach((f,i)=>tone(f,t+i*.14,.2,'square',.5));[1568,2093].forEach(f=>tone(f,t+.62,1.1,'square',.4));}},
+  ninguno:{n:'Sin sonido',f:null},
 };
+const CNT={
+  bip:{n:'Bip agudo',f:t=>tone(1760,t,.14,'square',.5)},
+  grave:{n:'Bip grave',f:t=>tone(880,t,.16,'square',.6)},
+  tic:{n:'Tic (madera)',f:t=>tone(1900,t,.045,'triangle',.95)},
+  campanita:{n:'Campanita',f:t=>bell(2093,t,.5,.5)},
+  ninguno:{n:'Sin sonido',f:null},
+};
+const EVENTS=[['count','Cuenta atrás (últimos 5 s)','bip'],['work','Empieza el ejercicio','pitido'],['rest','Empieza el descanso','descenso'],['round','Fin de ronda','campana'],['finish','Fin del entrenamiento','fanfarria']];
+const libFor=ev=>ev==='count'?CNT:LIB;
+function sndId(ev){const d=EVENTS.find(e=>e[0]===ev)[2],id=(S.settings.snd||{})[ev];return libFor(ev)[id]?id:d;}
+const SND={};EVENTS.forEach(([ev])=>{SND[ev]=t=>{const f=libFor(ev)[sndId(ev)].f;if(f)f(t);};});
 const startSnd=p=>p.type==='work'?SND.work:p.type==='rest'?SND.rest:p.type==='roundrest'?SND.round:null;
 function playNow(fn){if(!fn||!S.settings.sound||!ctx)return;track=false;fn(ctx.currentTime+.02);track=true;}
-/* Se programan en el reloj de audio la cuenta atrás de los 5 últimos segundos y la señal de la fase siguiente. */
-function scheduleAudio(cancelFirst){if(cancelFirst)cancelSounds();if(!S.settings.sound||!R||!R.running||!ctx)return;
-  const rem=(R.endAt-Date.now())/1000;if(rem<=0)return;const base=ctx.currentTime,p=R.phases[R.idx];
-  for(let k=Math.min(5,Math.floor(p.dur));k>=1;k--){const t=rem-k;if(t>.03)SND.count(base+t);}
-  const next=R.phases[R.idx+1];if(!next)SND.finish(base+rem);else{const s=startSnd(next);if(s)s(base+rem);}}
+/* Los pitidos se disparan en el momento, no se programan por adelantado: si iOS interrumpe el audio
+   (por ejemplo, al hablar la voz), se reactiva y el siguiente pitido vuelve a sonar. */
+function scheduleAudio(cancelFirst){if(cancelFirst)cancelSounds();}
+function wakeAudio(){if(ctx&&ctx.state!=='running')ctx.resume().catch(()=>{});}
+function markBeep(){if(R)R.beep=R.idx+':'+Math.ceil(remainingMs()/1000-.001);}
+function audioTick(){if(!R||!R.running||!S.settings.sound||!ctx)return;wakeAudio();
+  const p=R.phases[R.idx],k=Math.ceil((R.endAt-Date.now())/1000-.001),m=R.idx+':'+k;
+  if(k>=1&&k<=5&&k<p.dur&&R.beep!==m){R.beep=m;playNow(SND.count);}}
 
 /* ---------- Voz ---------- */
 let voice=null,speakTimer=0;
 function pickVoice(){try{const vs=speechSynthesis.getVoices();voice=vs.find(v=>v.lang==='es-ES')||vs.find(v=>/^es/i.test(v.lang))||null;}catch(e){}}
 if('speechSynthesis' in window){pickVoice();try{speechSynthesis.onvoiceschanged=pickVoice;}catch(e){}}
 function speak(txt,delay=650){clearTimeout(speakTimer);if(!S.settings.voice||!txt||!('speechSynthesis' in window))return;
-  speakTimer=setTimeout(()=>{try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(txt);u.lang='es-ES';u.rate=1.05;if(voice)u.voice=voice;speechSynthesis.speak(u);}catch(e){}},delay);}
+  speakTimer=setTimeout(()=>{try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(txt);u.lang='es-ES';u.rate=1.05;if(voice)u.voice=voice;u.onend=wakeAudio;u.onerror=wakeAudio;speechSynthesis.speak(u);}catch(e){}},delay);}
 function stopSpeech(){clearTimeout(speakTimer);try{speechSynthesis.cancel();}catch(e){}}
 
 /* ---------- Pantalla encendida ---------- */
@@ -372,25 +426,25 @@ function remainingMs(){return R.running?Math.max(0,R.endAt-Date.now()):R.remain;
 function resume(){ensureAudio();
   if(R.done){R.done=false;R.idx=0;R.remain=R.phases[0].dur*1000;}
   const p=R.phases[R.idx],fresh=R.remain>=p.dur*1000;
-  R.running=true;R.started=true;R.endAt=Date.now()+R.remain;
+  R.running=true;R.started=true;R.endAt=Date.now()+R.remain;markBeep();
   scheduleAudio(true);if(fresh){playNow(startSnd(p));speak(phaseSpeech(p),p.type==='prep'?0:650);}
   lockWake();renderRun();}
 function pause(){R.remain=remainingMs();R.running=false;cancelSounds();stopSpeech();renderRun();}
 function advance(auto){const prevEnd=R.endAt;R.idx++;
   if(R.idx>=R.phases.length){finish(auto);return;}
   const p=R.phases[R.idx];R.remain=p.dur*1000;R.endAt=auto?prevEnd+p.dur*1000:Date.now()+p.dur*1000;
-  if(auto){if(R.endAt>Date.now()){scheduleAudio(false);speak(phaseSpeech(p));}}
+  if(auto){if(R.endAt>Date.now()){wakeAudio();playNow(startSnd(p));speak(phaseSpeech(p));}}
   else{scheduleAudio(true);playNow(startSnd(p));speak(phaseSpeech(p));}
-  renderRun();}
-function finish(auto){R.running=false;if(!auto){cancelSounds();playNow(SND.finish);}speak('Entrenamiento terminado. Buen trabajo.',auto?900:1200);
+  markBeep();renderRun();}
+function finish(auto){R.running=false;cancelSounds();wakeAudio();playNow(SND.finish);speak('Entrenamiento terminado. Buen trabajo.',auto?900:1200);
   R.done=true;R.started=false;R.idx=0;R.remain=R.phases[0].dur*1000;releaseWake();renderRun();}
 function skip(){if(R.idx>=R.phases.length-1){if(R.running||R.started)finish(false);return;}
   if(R.running)advance(false);else{R.idx++;R.remain=R.phases[R.idx].dur*1000;R.done=false;renderRun();}}
 function restartPhase(){const p=R.phases[R.idx];R.remain=p.dur*1000;R.done=false;
-  if(R.running){R.endAt=Date.now()+R.remain;scheduleAudio(true);playNow(startSnd(p));speak(phaseSpeech(p));}renderRun();}
+  if(R.running){R.endAt=Date.now()+R.remain;markBeep();scheduleAudio(true);playNow(startSnd(p));speak(phaseSpeech(p));}renderRun();}
 function resetAll(){cancelSounds();stopSpeech();R.running=false;R.started=false;R.done=false;R.idx=0;R.remain=R.phases[0].dur*1000;releaseWake();renderRun();}
 function exitRun(){if(R){cancelSounds();stopSpeech();R.running=false;}R=null;releaseWake();delete document.documentElement.dataset.phase;renderHome();show('home');}
-function tick(){if(!R||!R.running)return;let g=0;while(R&&R.running&&Date.now()>=R.endAt&&g++<2000)advance(true);if(R)renderTime();}
+function tick(){if(!R||!R.running)return;let g=0;while(R&&R.running&&Date.now()>=R.endAt&&g++<2000)advance(true);if(R){audioTick();renderTime();}}
 setInterval(tick,200);
 (function loop(){tick();requestAnimationFrame(loop);})();
 
